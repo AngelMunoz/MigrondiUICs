@@ -3,6 +3,13 @@ namespace MigrondiUI.Services;
 using Avalonia.Platform.Storage;
 using MigrondiUI.Types;
 
+public enum ProjectChangeType
+{
+  Created,
+  Deleted
+}
+
+
 public interface IWorkspaceManager
 {
   Workspace? GetWorkspace(Uri workspacePath);
@@ -14,6 +21,8 @@ public interface IWorkspaceManager
   void DeleteWorkspace(Uri workspacePath);
 
   void UpdateWorkspaceName(Uri workspacePath, string newName);
+
+  IObservable<(Workspace, string, ProjectChangeType)> MonitorWorkspace(Workspace workspace);
 
 }
 
@@ -58,4 +67,39 @@ public class WorkspaceManager : IWorkspaceManager
       _workspaces.Add(workspacePath, new Workspace(newName, workspacePath));
     }
   }
+
+
+  public IObservable<(Workspace, string, ProjectChangeType)> MonitorWorkspace(Workspace workspace)
+  {
+    var sub = new Subject<(Workspace, string, ProjectChangeType)>();
+    FileSystemWatcher watcher = new()
+    {
+      Path = workspace.Path.LocalPath,
+      NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.DirectoryName,
+      EnableRaisingEvents = true
+    };
+
+    void onWsChange(object _, FileSystemEventArgs e)
+    {
+      if (e.ChangeType == WatcherChangeTypes.Created)
+      {
+        sub.OnNext((workspace, e.FullPath, ProjectChangeType.Created));
+      }
+      if (e.ChangeType == WatcherChangeTypes.Deleted)
+      {
+        sub.OnNext((workspace, e.FullPath, ProjectChangeType.Deleted));
+      }
+    }
+    watcher.Created += onWsChange;
+    watcher.Deleted += onWsChange;
+    sub.Finally(() =>
+    {
+      watcher.Created -= onWsChange;
+      watcher.Deleted -= onWsChange;
+      watcher.Dispose();
+    });
+
+    return sub;
+  }
+
 }

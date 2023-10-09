@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
         <OutputType>Exe</OutputType>
@@ -8,8 +8,6 @@
     </PropertyGroup>
 
     <ItemGroup>
-
-
         <PackageReference Include="NXUI" Version="11.0.0" />
         <PackageReference Include="NXUI.Desktop" Version="11.0.0" />
 

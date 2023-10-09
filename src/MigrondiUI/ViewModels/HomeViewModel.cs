@@ -15,9 +15,11 @@ public interface IHomeViewModel
   void LoadWorkspaces();
 
   void SelectWorkspace(Workspace workspace);
+
+  Task<IEnumerable<IStorageFolder>> AddWorkspaceSelection();
 }
 
-public class HomeViewModel(IWorkspaceManager manager, IRouter router) : IHomeViewModel
+public class HomeViewModel(IWorkspaceManager manager, IRouter router, IStorageProvider storageProvider) : IHomeViewModel
 {
   private readonly BehaviorSubject<IReadOnlyList<Workspace>> _workspaces = new([]);
 
@@ -39,5 +41,17 @@ public class HomeViewModel(IWorkspaceManager manager, IRouter router) : IHomeVie
   public void SelectWorkspace(Workspace workspace)
   {
     router.Navigate(new WorkspaceDetail(workspace));
+  }
+
+  public async Task<IEnumerable<IStorageFolder>> AddWorkspaceSelection()
+  {
+    var wellKnown = await storageProvider.TryGetWellKnownFolderAsync(WellKnownFolder.Documents);
+    var options = new FolderPickerOpenOptions
+    {
+      Title = "Select a workspace folder",
+      AllowMultiple = true,
+      SuggestedStartLocation = wellKnown
+    };
+    return await storageProvider.OpenFolderPickerAsync(options);
   }
 }
