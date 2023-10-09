@@ -1,9 +1,7 @@
 ﻿namespace MigrondiUI.Components;
 
 using Autofac;
-using Avalonia.Platform.Storage;
 using MigrondiUI.Services;
-using MigrondiUI.Types;
 using MigrondiUI.ViewModels;
 
 static class ErrorPagesModule

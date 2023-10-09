@@ -15,50 +15,54 @@ public static class HomeModule
       .Content("Add a new workspace.")
       .OnClickHandler((_, _) => onAddWorkspace());
 
-  static ItemsControl AddAndListWorkspaces(IObservable<IReadOnlyList<Workspace>> workspaces,
-    Action<Workspace> onSelectWorkspace) =>
-    ItemsControl()
-      .ItemsSource(workspaces, mode: BindingMode.OneWay)
-      .ItemTemplate(new FuncDataTemplate<Workspace>((workspace, _) =>
-          DockPanel()
-            .TextAlignmentLeft()
-            .VerticalAlignmentCenter()
-            .LastChildFill(true)
-            .Children(
-              Button()
-                .DockRight()
-                .Padding(4)
-                .Content("Open")
-                .OnClickHandler((_, _) => onSelectWorkspace(workspace)),
-              TextBlock().DockLeft().Text(workspace.Name).FontSize(14)
-            )
+  static FuncDataTemplate<Workspace> WorkspaceList(Action<Workspace> onSelectedWorkspace) =>
+    new((workspace, _) =>
+      DockPanel()
+        .TextAlignmentLeft()
+        .VerticalAlignmentCenter()
+        .LastChildFill(true)
+        .Children(
+          Button()
+            .DockRight()
+            .Padding(4)
+            .Content("Open")
+            .OnClickHandler((_, _) => onSelectedWorkspace(workspace)),
+          TextBlock().DockLeft().Text(workspace.Name).FontSize(14)
         )
-      );
+    );
 
-  static StackPanel View(IHomeViewModel viewModel)
+  static ContentControl View(IHomeViewModel viewModel)
   {
     viewModel.LoadWorkspaces();
 
-    return StackPanel()
+    return ContentControl()
       .HorizontalAlignmentCenter()
       .VerticalAlignmentCenter()
-      .TextAlignmentCenter()
-      .Spacing(12)
-      .Children(
-        TextBlock().Text("Select or add a new workspace.").FontSize(20),
-        AddButton(async () =>
-        {
-          var workspaces = await viewModel.AddWorkspaceSelection();
-          viewModel.AddWorkspaces(workspaces);
-        }),
-        ScrollViewer()
-          .Content(AddAndListWorkspaces(viewModel.Workspaces, viewModel.SelectWorkspace))
-      );
+      .Content(
+        StackPanel()
+        .TextAlignmentCenter()
+        .Spacing(12)
+        .Children(
+          TextBlock().Text("Select or add a new workspace.").FontSize(20),
+          AddButton(async () =>
+          {
+            var workspaces = await viewModel.AddWorkspaceSelection();
+            viewModel.AddWorkspaces(workspaces);
+          }),
+          ItemsControl()
+            .ItemsSource(viewModel.Workspaces, mode: BindingMode.OneWay)
+            .ItemTemplate(WorkspaceList(viewModel.SelectWorkspace))
+        )
+    );
   }
 
-  public static StackPanel GetView(IContainer env)
+  public static Control GetView(IContainer env)
   {
-    IHomeViewModel vm = new HomeViewModel(env.Resolve<IWorkspaceManager>(), env.Resolve<IRouter>(), env.Resolve<IStorageProvider>());
+    IHomeViewModel vm = new HomeViewModel(
+      env.Resolve<IWorkspaceManager>(),
+      env.Resolve<IRouter>(),
+      env.Resolve<IStorageProvider>()
+    );
     return View(vm);
   }
 }

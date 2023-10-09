@@ -17,11 +17,11 @@ public class WorkspaceViewModel(
   IProjectManager projectManager
 ) : IWorkspaceViewModel
 {
-  readonly Subject<IReadOnlyList<Project>> _projects = new();
+  readonly BehaviorSubject<IReadOnlyList<Project>> _projects = new([]);
 
   public Workspace Workspace => workspace;
 
-  public IObservable<IReadOnlyList<Project>> ProjectList => _projects;
+  public IObservable<IReadOnlyList<Project>> ProjectList => _projects.DistinctUntilChanged();
 
   public void LoadProjects()
   {

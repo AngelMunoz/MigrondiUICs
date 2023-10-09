@@ -24,7 +24,7 @@ public class NavbarViewModel(IRouter router) : INavbarViewModel
 
   public IObservable<bool> CanGoForward => router.CanGoForward;
 
-  public IObservable<string> RouteName => router.Route.Select(route => route.GetName());
+  public IObservable<string> RouteName => router.Route.DistinctUntilChanged().Select(route => route.GetName());
 
   public void GoBack()
   {
