@@ -21,12 +21,14 @@ public static class ShellModule
 {
   static DockPanel View(IShellViewModel viewModel) =>
     DockPanel()
+      .Margin(8)
       .HorizontalAlignmentStretch()
       .VerticalAlignmentStretch()
       .LastChildFill(true)
       .Children(
         ContentControl()
           .DockTop()
+          .Margin(0, 0, 0, 8)
           .Content(viewModel.NavbarContent, mode: BindingMode.OneWay),
         ContentControl()
           .DockBottom()

@@ -1,9 +1,9 @@
 ﻿namespace MigrondiUI.Types;
 
 // App Types
-public sealed record Workspace(string Name, Uri Path);
 
-public sealed record Project(string Name, Uri WorkspacePath, Uri Path);
+public sealed record Project(Guid Id, string Name, Uri Path, Guid WorkspaceId);
+public sealed record Workspace(Guid Id, string Name, Uri Path, ICollection<Project> Projects);
 
 // App Routes
 

@@ -20,8 +20,7 @@ public class ShellViewModel(IContainer container, IRouter router) : IShellViewMo
       {
         return route switch
         {
-          Home => HomeModule.GetView(container),
-          WorkspaceDetail workspaceDetail => WorkspaceModule.GetView(container, workspaceDetail.Workspace),
+          Home => LandingModule.GetView(container),
           _ => ErrorPagesModule.NotFoundPage()
         };
       });

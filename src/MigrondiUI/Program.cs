@@ -21,8 +21,7 @@ AppBuilder.Configure<Application>()
 
     builder.RegisterInstance(topLevel!.StorageProvider);
     builder.RegisterInstance<IRouter>(new Router(new Home()));
-    builder.RegisterInstance<IWorkspaceManager>(new WorkspaceManager());
-    builder.RegisterInstance<IProjectManager>(new ProjectManager());
+    builder.RegisterInstance<IWorkspaceService>(new WorkspaceService());
 
     var container = builder.Build();
 
