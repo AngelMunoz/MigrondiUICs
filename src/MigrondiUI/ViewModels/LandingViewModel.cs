@@ -11,7 +11,7 @@ public interface ILandingViewModel
 
   IObservable<Project?> SelectedProject { get; }
 
-  Task SelectWorkspaces();
+  Task ImportWorkspaces();
 
   void LoadWorkspaces();
 
@@ -28,9 +28,28 @@ public class LandingViewModel(IWorkspaceService workspaceService, IStorageProvid
 
   public IObservable<Project?> SelectedProject => _selectedProject.DistinctUntilChanged();
 
-  public async Task SelectWorkspaces()
+  public async Task ImportWorkspaces()
   {
-    var workspaces = await workspaceService.SelectWorkspaces(storageProvider);
+    var selectedDirectories = await
+      storageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
+      {
+        AllowMultiple = true,
+        Title = "Select The Directory To Import."
+      });
+
+    var workspaces =
+      await selectedDirectories
+        .ToAsyncEnumerable()
+        .SelectAwait(async directory =>
+        {
+          var projects =
+            new DirectoryInfo(directory.Path.LocalPath)
+            .EnumerateFiles("migrondi.json", SearchOption.AllDirectories)
+            .Select(file => file.Directory!.Name)
+            .ToList();
+          return await workspaceService.ImportWorkspace(directory.Name, directory.Path, projects);
+        })
+        .ToListAsync();
 
     _workspaceList.OnNext(workspaces);
   }
@@ -42,7 +61,6 @@ public class LandingViewModel(IWorkspaceService workspaceService, IStorageProvid
 
   public void LoadWorkspaces()
   {
-    // TODO: Load from local database
-    Debug.WriteLine("TODO: Load from local database");
+    _workspaceList.OnNext(workspaceService.GetWorkspaces());
   }
 }

@@ -90,7 +90,7 @@ public static class LandingModule
     {
       Control selectWorkspaces =
         Button()
-          .Content(TextBlock().Text("Add Workspaces"))
+          .Content(TextBlock().Text("Import From Disk"))
           .OnClickHandler((_, _) => onSelectWorkspaces());
       if (workspaces.Count == 0)
       {
@@ -119,7 +119,7 @@ public static class LandingModule
         DockPanel()
         .LastChildFill(true)
         .Children(
-          WorkspaceSidebar(vm.WorkspaceList, () => vm.SelectWorkspaces(), vm.SelectProject),
+          WorkspaceSidebar(vm.WorkspaceList, () => vm.ImportWorkspaces(), vm.SelectProject),
           ProjectModule.GetView(vm.SelectedProject, vmCache)
         )
       );
