@@ -1,0 +1,6 @@
+{
+  "connection": "Data Source=../MigrondiUI/local.db",
+  "migrations": "../MigrondiUI/sql",
+  "tableName": "__migrondi_migrations",
+  "driver": "sqlite"
+}
