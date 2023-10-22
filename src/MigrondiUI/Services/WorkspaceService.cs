@@ -1,78 +1,107 @@
 namespace MigrondiUI.Services;
 
-using Avalonia.Platform.Storage;
-using MigrondiUI.Types;
+using System.Data;
+using RepoDb;
+using SqlKata.Execution;
+using Types;
+
+public interface IProjectService
+{
+  Project CreateProject(string name, long workspaceId);
+
+  ICollection<Project> GetProjectsForWorkspace(long workspaceId);
+
+  Task<ICollection<Project>> ImportProjects(IReadOnlyList<string> projects, long workspaceId);
+}
 
 
 public interface IWorkspaceService
 {
-  Task<IReadOnlyList<Workspace>> SelectWorkspaces(IStorageProvider storageProvider);
+  IReadOnlyList<Workspace> GetWorkspaces();
 
-  ICollection<Project> GetProjectsForWorkspace(Workspace workspace);
+  Workspace CreateWorkspace(string name);
 
-  Workspace AddProjectsToWorkspace(Workspace workspace, IEnumerable<Project> projects);
-
-  Workspace RemoveProjectFromWorkspace(Workspace workspace, Project project);
-
+  Task<Workspace> ImportWorkspace(string name, Uri path, IReadOnlyList<string> projects);
 }
 
 
-public class WorkspaceService : IWorkspaceService
+public class ProjectService(QueryFactory db) : IProjectService
 {
-
-  public Workspace AddProjectsToWorkspace(Workspace workspace, IEnumerable<Project> projects)
+  public Project CreateProject(string name, long workspaceId)
   {
-    var newProjects = projects.Aggregate(workspace.Projects.ToHashSet(), (current, next) =>
-    {
-      current.Add(next);
-      return current;
-    });
 
-    return workspace with { Projects = newProjects };
+    var path = new Uri($"./{name}/", UriKind.Relative);
+    var id = db.Query("projects").InsertGetId<long>(new { Name = name, Path = path.ToString(), WorkspaceId = workspaceId });
+    return new Project(id, name, path, workspaceId);
   }
 
-  public ICollection<Project> GetProjectsForWorkspace(Workspace workspace)
+  public ICollection<Project> GetProjectsForWorkspace(long workspaceId)
   {
-    var workspaces =
-      new DirectoryInfo(workspace.Path.LocalPath)
-      .EnumerateFiles("migrondi.json", SearchOption.AllDirectories)
-      .Select(file =>
+
+    var result = db
+      .Query("projects")
+      .Where("WorkspaceId", workspaceId)
+      .Get()
+      .Select(project => new Project(project.Id, project.Name, ((string)project.Path).ToUri(), project.WorkspaceId));
+    return result.ToList();
+  }
+
+  public async Task<ICollection<Project>> ImportProjects(IReadOnlyList<string> projects, long workspaceId)
+  {
+    try
+    {
+      var toInsert = projects
+        .Select(project =>
+          new object[] { project, $"./{project}/", workspaceId }
+        )
+        .ToArray();
+      await db
+        .Query("projects")
+        .InsertAsync(new[] { "Name", "Path", "WorkspaceId" }, toInsert);
+    }
+    catch (System.Exception)
+    {
+
+      throw;
+    }
+
+
+    return GetProjectsForWorkspace(workspaceId);
+  }
+
+}
+
+public class WorkspaceService(QueryFactory db, IProjectService projectManager) : IWorkspaceService
+{
+  public async Task<Workspace> ImportWorkspace(string name, Uri path, IReadOnlyList<string> projects)
+  {
+
+    var ws = await db.Query("workspaces").InsertGetIdAsync<long>(new { Name = name, Path = path.ToString() });
+
+    var createdProjects = await projectManager.ImportProjects(projects, ws);
+
+    var result = await db.Query("workspaces").Select("*").Where("Id", ws).GetAsync();
+
+    return result.Select(result => new Workspace(result.Id, result.Name, ((string)result.Path).ToUri(), createdProjects)).Single();
+  }
+
+  public IReadOnlyList<Workspace> GetWorkspaces()
+  {
+
+    var result = db.Query("workspaces").Select("*").Get();
+    return result
+      .Select(workspace =>
       {
-        var filename =
-          System.IO.Path.EndsInDirectorySeparator(file.FullName)
-          ? file.FullName
-          : file.FullName + System.IO.Path.DirectorySeparatorChar;
-
-        return new Project(Guid.NewGuid(), file.Directory!.Name, new Uri(filename, UriKind.Absolute), workspace.Id);
-      });
-    return workspaces.ToList();
+        var projects = projectManager.GetProjectsForWorkspace(workspace.Id);
+        return new Workspace(workspace.Id, workspace.Name, ((string)workspace.Path).ToUri(), projects);
+      })
+      .ToList();
   }
 
-  public Workspace RemoveProjectFromWorkspace(Workspace workspace, Project project)
+  public Workspace CreateWorkspace(string name)
   {
-    return workspace with { Projects = workspace.Projects.Where(p => p.Id != project.Id).ToHashSet() };
-  }
-
-  public async Task<IReadOnlyList<Workspace>> SelectWorkspaces(IStorageProvider storageProvider)
-  {
-    var startLocation = await storageProvider.TryGetWellKnownFolderAsync(WellKnownFolder.Documents);
-
-    var selected = await storageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
-    {
-      AllowMultiple = true,
-      Title = "Select Folders To Work With",
-      SuggestedStartLocation = startLocation
-    });
-
-    return selected.Select(folder =>
-    {
-      var wsId = Guid.NewGuid();
-      var ws = new Workspace(wsId, folder.Name, folder.Path, new List<Project>());
-
-      var projects = GetProjectsForWorkspace(ws);
-      ws = AddProjectsToWorkspace(ws, projects);
-      return ws;
-    })
-    .ToList();
+    var path = new Uri("virtual://{name}/", UriKind.Absolute);
+    var ws = db.Query("workspaces").InsertGetId<int>(new { Name = name, Path = path.ToString() });
+    return new Workspace(ws, name, path, []);
   }
 }
