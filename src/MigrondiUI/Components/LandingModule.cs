@@ -17,28 +17,20 @@ static class ProjectModule
         TextBlock().Text(project.Project.Name)
       );
 
-  public static Control GetView(IObservable<Project?> project, IDictionary<Project, IProjectViewModel> vmCache)
+  public static Control GetView(IObservable<Project?> selectedProject, Func<Project?, IProjectViewModel?> getOrAddViewModel)
   {
-    var content = project.Select<Project?, Control>(project =>
+    var content = selectedProject.Select<Project?, Control>(project =>
     {
-      if (project is null)
-      {
-        return StackPanel()
-          .HorizontalAlignmentCenter()
-          .VerticalAlignmentCenter()
-          .TextAlignmentCenter()
-          .Children(TextBlock().Text("No project selected"));
-      }
-      if (vmCache.TryGetValue(project, out var vm))
+      if (getOrAddViewModel(project) is IProjectViewModel vm)
       {
         return View(vm);
       }
-      else
-      {
-        vm = new ProjectViewModel(project);
-        vmCache.Add(project, vm);
-        return View(vm);
-      }
+
+      return StackPanel()
+        .HorizontalAlignmentCenter()
+        .VerticalAlignmentCenter()
+        .TextAlignmentCenter()
+        .Children(TextBlock().Text("No project selected"));
     });
     return ContentControl()
       .Margin(12, 0)
@@ -120,7 +112,7 @@ public static class LandingModule
         .LastChildFill(true)
         .Children(
           WorkspaceSidebar(vm.WorkspaceList, () => vm.ImportWorkspaces(), vm.SelectProject),
-          ProjectModule.GetView(vm.SelectedProject, vmCache)
+          ProjectModule.GetView(vm.SelectedProject, vm.GetOrAddProjectVm)
         )
       );
   }

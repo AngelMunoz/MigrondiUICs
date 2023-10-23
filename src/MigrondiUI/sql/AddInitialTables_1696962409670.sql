@@ -32,6 +32,8 @@ create table migrondi_migrations(
     upContent text not null,
     downContent text not null,
     projectId integer not null,
+    configId integer not null,
+    foreign key(configId) references migrondi_configs(id) on delete cascade on update cascade,
     foreign key(projectId) references projects(Id) on delete cascade on update cascade
 );
 

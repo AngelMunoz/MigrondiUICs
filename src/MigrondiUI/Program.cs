@@ -95,7 +95,13 @@ AppBuilder.Configure<Application>()
     builder.RegisterInstance(topLevel!.StorageProvider);
 
     builder.Register<IProjectService>(services =>
-      new ProjectService(services.Resolve<QueryFactory>()));
+      new ProjectService(
+        services.Resolve<Microsoft.Extensions.Logging.ILogger>(),
+        services.Resolve<IMiConfigurationSerializer>(),
+        services.Resolve<IMiMigrationSerializer>(),
+        services.Resolve<QueryFactory>()
+      )
+    );
 
     builder.Register<IWorkspaceService>(services =>
       new WorkspaceService(

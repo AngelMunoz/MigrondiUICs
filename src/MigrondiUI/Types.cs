@@ -1,4 +1,6 @@
-﻿namespace MigrondiUI.Types;
+﻿using System.Collections.Immutable;
+
+namespace MigrondiUI.Types;
 
 // App Types
 
@@ -20,7 +22,7 @@ public record Project(long Id, string Name, Uri Path, long WorkspaceId);
 /// <param name="Name">Human readable string for the user to identify the project</param>
 /// <param name="Path">Absolute location for this project</param>
 /// <param name="Projects"></param>
-public record Workspace(long Id, string Name, Uri Path, ICollection<Project> Projects);
+public record Workspace(long Id, string Name, Uri Path, IImmutableList<Project> Projects);
 
 public static class TypeExtensions
 {
@@ -35,6 +37,11 @@ public static class TypeExtensions
   }
 
   public static Uri GetProjectAbsUri(this Workspace workspace, Project project)
+  {
+    return new Uri(workspace.Path, project.Path);
+  }
+
+  public static Uri GetProjectAbsUri(this Project project, Workspace workspace)
   {
     return new Uri(workspace.Path, project.Path);
   }
